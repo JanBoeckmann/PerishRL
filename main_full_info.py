@@ -24,11 +24,11 @@ gain_per_sale_in_advertisement = 4
 loss_per_lost_sales = 5
 loss_per_perished_product = 30
 
-class PerishEnv(Env):
+class PerishEnvFullInfo(Env):
     def __init__(self):
         super().__init__()
         self.action_space = Discrete(4) #0 = nothig, 1=reorder, 2=advertise, 3=reorder and advertise
-        self.observation_space = Box(low=np.array([0]), high=np.array([300]), dtype=np.float32)
+        self.observation_space = Box(low=np.array([0, 0, 0]), high=np.array([100, 200, 300]), dtype=np.float32)
         self.state = [order_quantity, 0, 0] 
         self.number_of_periods = 100  
 
@@ -80,19 +80,19 @@ class PerishEnv(Env):
         truncated = False
         info = {}
 
-        return np.array([sum(self.state)], dtype=np.float32), reward, done, truncated, info  # Ensure correct format
+        return np.array(self.state, dtype=np.float32), reward, done, truncated, info  # Ensure correct format
 
     def reset(self, seed=None, options=None):
         self.number_of_periods = 100  
         self.state = np.array([order_quantity, 0, 0], dtype=np.float32)
-        observation = np.array([self.state.sum()], dtype=np.float32)  
+        observation = np.array(self.state, dtype=np.float32)  
         return observation, {}
 
 # Instantiate Environment
-env = PerishEnv()
+env = PerishEnvFullInfo()
 env = DummyVecEnv([lambda: env])
 
-save_path = os.path.join("Training", "Saved Models", "PPO_perish")
+save_path = os.path.join("Training", "Saved Models", "PPO_perish_full_info")
 
 # # Train Model
 # model = PPO.load(save_path, env=env)
@@ -106,20 +106,20 @@ model.save(save_path)
 # model = PPO.load(save_path, env=env)
 
 # # Evaluate Model
-mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=30)
+mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
 print(f"Mean Reward: {mean_reward}, Std Reward: {std_reward}")
 
-# # Test Model
-# episodes = 5
-# for episode in range(1, episodes + 1):
-#     obs = env.reset()
-#     done = False
-#     score = 0
+# Test Model
+episodes = 5
+for episode in range(1, episodes + 1):
+    obs = env.reset()
+    done = False
+    score = 0
 
-#     while not done:
-#         action, _ = model.predict(obs)
-#         obs, reward, done, info = env.step(action)
-#         score += reward
-#         print(f"Action: {action}, Obs: {obs}, Reward: {reward}")
+    while not done:
+        action, _ = model.predict(obs)
+        obs, reward, done, info = env.step(action)
+        score += reward
+        print(f"Action: {action}, Obs: {obs}, Reward: {reward}")
 
-#     print(f"Episode: {episode}, Score: {score}")
+    print(f"Episode: {episode}, Score: {score}")
