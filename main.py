@@ -10,24 +10,35 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.evaluation import evaluate_policy
 
-from Environments.environments import PerishEnv, PerishEnvFullInfo
+from Environments.environments import PerishEnv, PerishEnvFullInfo, PerishEnvOrderInfo
 
-full_information = True
+full_information = False
+
+# version = "full"
+# version = "order"
+version = "limited"
 
 # Instantiate Environment
-if full_information:
+if version == "full":
     env = PerishEnvFullInfo()
     save_path = os.path.join("Training", "Saved Models", "PPO_perish_full_information")
-else:
+    model_input_string = "MlpPolicy"
+elif version == "limited":
     env = PerishEnv()
     save_path = os.path.join("Training", "Saved Models", "PPO_perish")
+    model_input_string = "MlpPolicy"
+elif version == "order":
+    env = PerishEnvOrderInfo()
+    save_path = os.path.join("Training", "Saved Models", "PPO_perish_order")
+    model_input_string = "MultiInputPolicy"
 
 #for faster training
 env = DummyVecEnv([lambda: env])
 
 # # Train Model
 # model = PPO.load(save_path, env=env)
-model = PPO("MlpPolicy", env, verbose=1, tensorboard_log="./Training/Logs/PPO_perish_log")
+# model = PPO("MlpPolicy", env, verbose=1, tensorboard_log="./Training/Logs/PPO_perish_log")
+model = PPO(model_input_string, env, verbose=1, tensorboard_log="./Training/Logs/PPO_perish_log")
 model.learn(total_timesteps=5e5) 
 
 # # Save Model

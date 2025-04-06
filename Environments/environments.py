@@ -105,6 +105,47 @@ class PerishEnv(Env):
         observation = np.array([self.state.sum()], dtype=np.float32)  
         return observation, {}
 
+    
+class PerishEnvOrderInfo(Env):
+    def __init__(self):
+        super().__init__()
+        self.action_space = Discrete(4) #0 = nothing, 1=reorder, 2=advertise, 3=reorder and advertise
+        self.observation_space = Dict({
+            "stock": Box(low=np.array([0]), high=np.array([number_of_periods_until_perish * order_quantity]), dtype=np.float32),
+            "order_history": Box(low=0, high=1, shape=(5,), dtype=np.int8)
+        })
+        self.state = [0 for _ in range(number_of_periods_until_perish)]
+        self.state[0] = order_quantity
+        self.order_history = [0 for _ in range(number_of_periods_until_perish)]
+        self.order_history[0] = 1
+        self.number_of_periods = number_of_periods  
+
+    def step(self, action):
+        reward, done, truncated, info, self.state, self.number_of_periods = update_state(action, self.state, self.number_of_periods)
+        next_order_history_entry = 0
+        if action in [1, 3]:
+            next_order_history_entry = 1
+        self.order_history = np.roll(self.order_history, 1)
+        self.order_history[0] = next_order_history_entry
+        obs = self._get_obs()
+        return obs, reward, done, truncated, info  # Ensure correct format
+
+    def reset(self, seed=None, options=None):
+        self.number_of_periods = 100 
+        self.state = [0 for _ in range(number_of_periods_until_perish)]
+        self.state[0] = order_quantity 
+        self.state = np.array(self.state, dtype=np.float32)
+        self.order_history = [0 for _ in range(number_of_periods_until_perish)]
+        self.order_history[0] = 1
+        observation = self._get_obs()
+        return observation, {}
+    
+    def _get_obs(self):
+        return {
+            "stock": np.array([self.state.sum()], dtype=np.float32),
+            "order_history": np.array(self.order_history, dtype=np.int8)
+        }
+
 class PerishEnvFullInfo(Env):
     def __init__(self):
         super().__init__()
